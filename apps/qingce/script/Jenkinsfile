@@ -1,5 +1,5 @@
 // Jenkinsfile: 仅在 ECS 上拉取阿里云镜像并运行
-// monorepo 应用 apps/qingce，容器名 web-qingce，宿主机 3002
+// monorepo 应用 apps/qingce，容器名 web-qingce，宿主机 3200
 pipeline {
     agent any
     environment {
@@ -23,7 +23,7 @@ pipeline {
                         docker pull $IMAGE_LATEST
                         docker stop $APP_NAME || true
                         docker rm $APP_NAME || true
-                        docker run -d -p 3002:80 \
+                        docker run -d -p 3200:80 \
                           --name $APP_NAME \
                           --restart unless-stopped \
                           $IMAGE_LATEST
