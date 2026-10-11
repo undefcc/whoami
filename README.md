@@ -54,3 +54,57 @@ cp .env.example .env
 | 恋爱沟通 | 密钥 |
 
 加新题：在 `src/data/` 按现有结构写一份，再挂到 `src/data/index.ts`。
+
+## 部署到阿里云 ECS
+
+流程对齐 [intro](https://github.com/undefcc/intro)：GitHub Actions 构建 → 推阿里云 ACR → SSH 到 ECS 跑 Docker，并加入 `compose_default` 给 Nginx Proxy Manager 反代。
+
+青测是 Vite 静态站，镜像里是 nginx，不占 intro 的 3000/3001。
+
+| 项目 | 容器名 | 宿主机端口 |
+| --- | --- | --- |
+| intro | `web-intro` | 3000（+ 3001） |
+| 青测 | `web-qingce` | 3002 |
+
+推到 `main` 或在 Actions 里手动跑 `Build Vite and Deploy to Aliyun ECS`。
+
+### 1. 把 intro 的 Secrets 拷到本仓库
+
+whoami 和 intro 的 Secrets 不共用。在本仓库 Settings → Secrets and variables → Actions 里加上：
+
+- `ALIYUN_DOCKER_USERNAME`
+- `ALIYUN_DOCKER_PASSWORD`
+
+再创建一个 Environment，名字必须是 `cc`（和 intro 一样），并写入：
+
+- `ECS_HOST`
+- `ECS_USERNAME`
+- `ECS_SSH_PRIVATE_KEY`
+- `ECS_SSH_FINGERPRINT`
+
+可选（不配则用代码里的默认盐和口令）：
+
+- `VITE_KEY_SECRET`
+- `VITE_STUDIO_PASSWORD`
+
+ACR 仍用 intro 同一套：`crpi-zpvonb2nha7j0qgy.cn-shenzhen.personal.cr.aliyuncs.com/cc4ever/web-qingce`。
+
+### 2. Nginx Proxy Manager
+
+部署成功后，在 NPM 里加一条 Proxy Host：
+
+- Forward Hostname / IP：`web-qingce`
+- Forward Port：`80`
+- 域名自己定，例如 `qingce.ccoding.cn`
+
+没配域名时，可以直接用 `http://<ECS公网IP>:3002` 验。
+
+### 3. 本机先看镜像
+
+```bash
+npm ci
+npm run build
+docker build -t web-qingce:local -f script/Dockerfile .
+docker run --rm -p 3002:80 web-qingce:local
+```
+

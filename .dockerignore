@@ -1,0 +1,16 @@
+node_modules
+.git
+.github
+dist-ssr
+*.local
+.env
+.env.*
+!.env.example
+src
+scripts
+*.md
+.oxlintrc.json
+tsconfig*.json
+vitest.config.ts
+vite.config.ts
+index.html

@@ -1,0 +1,45 @@
+// Jenkinsfile: 仅在 ECS 上拉取阿里云镜像并运行
+// 和 intro 一样走 ACR + compose_default，容器名 web-qingce，宿主机 3002
+pipeline {
+    agent any
+    environment {
+        REGISTRY = 'crpi-zpvonb2nha7j0qgy.cn-shenzhen.personal.cr.aliyuncs.com'
+        IMAGE_NAMESPACE = 'cc4ever'
+        APP_NAME = 'web-qingce'
+        ECS_HOST = '47.115.57.172'
+        ECS_USER = 'root'
+    }
+    stages {
+        stage('Deploy to ECS') {
+            steps {
+                withCredentials([
+                    usernamePassword(credentialsId: 'aliyun-docker', usernameVariable: 'ALIYUN_DOCKER_USERNAME', passwordVariable: 'ALIYUN_DOCKER_PASSWORD'),
+                    sshUserPrivateKey(credentialsId: 'ecs-server-key', keyFileVariable: 'SSH_KEY')
+                ]) {
+                    sh '''
+                    IMAGE_LATEST="$REGISTRY/$IMAGE_NAMESPACE/$APP_NAME:latest"
+                    ssh -i $SSH_KEY -o StrictHostKeyChecking=no $ECS_USER@$ECS_HOST "
+                        docker login --username=$ALIYUN_DOCKER_USERNAME --password=$ALIYUN_DOCKER_PASSWORD $REGISTRY
+                        docker pull $IMAGE_LATEST
+                        docker stop $APP_NAME || true
+                        docker rm $APP_NAME || true
+                        docker run -d -p 3002:80 \
+                          --name $APP_NAME \
+                          --restart unless-stopped \
+                          $IMAGE_LATEST
+                        docker network connect compose_default $APP_NAME || true
+                    "
+                    '''
+                }
+            }
+        }
+    }
+    post {
+        success {
+            echo '部署成功'
+        }
+        failure {
+            echo '部署失败'
+        }
+    }
+}
