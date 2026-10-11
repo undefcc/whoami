@@ -62,7 +62,7 @@ cp apps/qingce/.env.example apps/qingce/.env
 | intro（独立仓库） | `web-intro` | 3000 / 3001 |
 | 青测 | `web-qingce` | 3002 |
 
-whoami 是 public，标准托管 runner 不扣 2000 分钟。Secrets 在本仓库加一次，后面新应用共用：
+whoami 是 public，标准托管 runner 不扣 2000 分钟。Secrets 放在本仓库的 Environment `cc` 里（和 intro 一样），workflow 里用 `environment: cc` 读取，后面新应用共用：
 
 - `ALIYUN_DOCKER_USERNAME`
 - `ALIYUN_DOCKER_PASSWORD`
