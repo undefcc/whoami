@@ -1,30 +1,17 @@
 {
-  "name": "qingce",
+  "name": "whoami",
   "private": true,
-  "version": "0.1.0",
-  "type": "module",
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "oxlint",
-    "preview": "vite preview",
-    "test": "vitest run",
-    "gen-key": "tsx scripts/gen-key.ts"
-  },
-  "dependencies": {
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-router-dom": "^7.9.4"
-  },
-  "devDependencies": {
-    "@types/node": "^24.13.3",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.7",
-    "@vitejs/plugin-react": "^6.1.1",
-    "oxlint": "^1.81.0",
-    "tsx": "^4.20.6",
-    "typescript": "~6.0.2",
-    "vite": "^8.3.0",
-    "vitest": "^3.2.4"
+    "dev": "npm run dev -w qingce",
+    "dev:qingce": "npm run dev -w qingce",
+    "build": "npm run build --workspaces --if-present",
+    "build:qingce": "npm run build -w qingce",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "preview": "npm run preview -w qingce",
+    "gen-key": "npm run gen-key -w qingce --"
   }
 }

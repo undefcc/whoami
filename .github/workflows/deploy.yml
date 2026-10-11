@@ -1,19 +1,48 @@
-name: Build Vite and Deploy to Aliyun ECS
+name: Build and Deploy to Aliyun ECS
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      app:
+        description: apps/ 下要部署的应用
+        type: choice
+        options:
+          - qingce
+        default: qingce
 
 env:
   REGISTRY: crpi-zpvonb2nha7j0qgy.cn-shenzhen.personal.cr.aliyuncs.com
   IMAGE_NAMESPACE: cc4ever
-  APP_NAME: web-qingce
-  HOST_PORT: "3002"
 
 jobs:
+  resolve-app:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.map.outputs.app }}
+      image_name: ${{ steps.map.outputs.image_name }}
+      host_port: ${{ steps.map.outputs.host_port }}
+    steps:
+      - name: Map app to image and port
+        id: map
+        run: |
+          app="${{ github.event.inputs.app || 'qingce' }}"
+          case "$app" in
+            qingce)
+              echo "app=qingce" >> "$GITHUB_OUTPUT"
+              echo "image_name=web-qingce" >> "$GITHUB_OUTPUT"
+              echo "host_port=3002" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "未知应用: $app"
+              exit 1
+              ;;
+          esac
+
   build-and-push-docker:
     runs-on: ubuntu-latest
+    needs: resolve-app
     outputs:
       image: ${{ steps.push.outputs.image }}
     steps:
@@ -26,15 +55,15 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Install dependencies and build
+      - name: Install, test, and build
         env:
           VITE_KEY_SECRET: ${{ secrets.VITE_KEY_SECRET }}
           VITE_STUDIO_PASSWORD: ${{ secrets.VITE_STUDIO_PASSWORD }}
         run: |
           npm ci
-          npm test
-          npm run build
-          test -f dist/index.html
+          npm run test -w "${{ needs.resolve-app.outputs.app }}"
+          npm run build -w "${{ needs.resolve-app.outputs.app }}"
+          test -f "apps/${{ needs.resolve-app.outputs.app }}/dist/index.html"
 
       - name: Login to Aliyun Container Registry
         uses: docker/login-action@v3
@@ -47,9 +76,9 @@ jobs:
         id: push
         run: |
           tag="${GITHUB_SHA:0:8}"
-          image="${REGISTRY}/${IMAGE_NAMESPACE}/${APP_NAME}:${tag}"
-          latest="${REGISTRY}/${IMAGE_NAMESPACE}/${APP_NAME}:latest"
-          docker build -t "$image" -f script/Dockerfile .
+          image="${REGISTRY}/${IMAGE_NAMESPACE}/${{ needs.resolve-app.outputs.image_name }}:${tag}"
+          latest="${REGISTRY}/${IMAGE_NAMESPACE}/${{ needs.resolve-app.outputs.image_name }}:latest"
+          docker build -t "$image" -f "apps/${{ needs.resolve-app.outputs.app }}/script/Dockerfile" .
           docker push "$image"
           docker tag "$image" "$latest"
           docker push "$latest"
@@ -57,15 +86,15 @@ jobs:
 
   deploy-to-ecs:
     runs-on: ubuntu-latest
-    needs: build-and-push-docker
+    needs: [resolve-app, build-and-push-docker]
     timeout-minutes: 20
     steps:
       - name: Deploy to Aliyun ECS via SSH
         uses: appleboy/ssh-action@v1.2.5
         env:
           IMAGE: ${{ needs.build-and-push-docker.outputs.image }}
-          APP_NAME: ${{ env.APP_NAME }}
-          HOST_PORT: ${{ env.HOST_PORT }}
+          APP_NAME: ${{ needs.resolve-app.outputs.image_name }}
+          HOST_PORT: ${{ needs.resolve-app.outputs.host_port }}
           REGISTRY: ${{ env.REGISTRY }}
           ALIYUN_DOCKER_USERNAME: ${{ secrets.ALIYUN_DOCKER_USERNAME }}
           ALIYUN_DOCKER_PASSWORD: ${{ secrets.ALIYUN_DOCKER_PASSWORD }}

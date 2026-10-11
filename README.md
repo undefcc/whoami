@@ -1,49 +1,37 @@
-# 青测
+# whoami
 
-干净清新的测评站：性格、周末去哪、旅行目的地、职业气质、恋爱沟通。  
-用 **Vite + React** 做本地开发，启动比 Next.js SSR 快一截。付费测评先做成 **密钥解锁**，方便在闲鱼或小红书私下发售。
+个人项目 monorepo。相关应用都放在 `apps/` 下，共用这一套 GitHub Secrets 和 ECS 部署，不必每做一个产品再开仓库。
 
-## 本地启动
+```text
+apps/
+  qingce/    青测：性格 / 旅行 / 职业测评，密钥解锁
+```
+
+## 本地
 
 ```bash
 npm install
-npm run dev
-```
-
-浏览器打开终端里提示的本地地址即可，默认 `http://localhost:5173`。
-
-```bash
+npm run dev            # 默认启动青测
+npm run dev:qingce
 npm test
 npm run build
-```
-
-## 密钥怎么卖
-
-1. 打开 `/studio`，口令默认 `qingce-studio`。
-2. 选择范围后生成密钥，复制发给买家。
-   - `ALL`：全部付费测评
-   - `TRAVEL` / `CAREER` / `LOVE`：单题
-3. 买家在「解锁」页或付费测评封面粘贴密钥。记录存在对方浏览器本地。
-
-也可以用命令行：
-
-```bash
 npm run gen-key -- ALL 5
-npm run gen-key -- TRAVEL 1
 ```
 
-上线前请改 `.env`：
+青测开发地址默认 `http://localhost:5173`。
 
-```bash
-cp .env.example .env
-```
+## 加一个新应用
 
-- `VITE_KEY_SECRET`：生成和校验用的盐。**改了之后旧钥匙全部失效。**
-- `VITE_STUDIO_PASSWORD`：工作室口令。
+1. 在 `apps/` 下新建目录，自带 `package.json`（npm workspaces 会自动收进去）。
+2. 根目录加对应脚本，例如 `"dev:foo": "npm run dev -w foo"`。
+3. 写 `apps/foo/script/Dockerfile`（静态站可抄青测的 nginx）。
+4. 在 `.github/workflows/deploy.yml` 的 `options` 和 `case` 里登记应用名、镜像名、宿主机端口。
 
-密钥算法在前端，能挡住随手乱填，挡不住拆包。这是为了先能卖，不是支付系统。以后要收款，可以把同一套范围接到微信/支付宝，再发同一格式的钥匙。
+共享代码以后再加 `packages/`。
 
-## 现在有的测评
+## 青测
+
+性格、周末去哪、旅行目的地、职业气质、恋爱沟通。Vite + React，付费题用密钥解锁，方便在闲鱼或小红书发售。
 
 | 测评 | 是否免费 |
 | --- | --- |
@@ -53,26 +41,28 @@ cp .env.example .env
 | 职业气质 | 密钥 |
 | 恋爱沟通 | 密钥 |
 
-加新题：在 `src/data/` 按现有结构写一份，再挂到 `src/data/index.ts`。
+卖密钥：打开 `/studio`，口令默认 `qingce-studio`。范围 `ALL` / `TRAVEL` / `CAREER` / `LOVE`。买家在「解锁」页粘贴，记录在对方浏览器本地。
+
+```bash
+npm run gen-key -- ALL 5
+cp apps/qingce/.env.example apps/qingce/.env
+```
+
+- `VITE_KEY_SECRET`：盐。改了之后旧钥匙全部失效。
+- `VITE_STUDIO_PASSWORD`：工作室口令。
+
+加新题：`apps/qingce/src/data/`，再挂到 `index.ts`。
 
 ## 部署到阿里云 ECS
 
-流程对齐 [intro](https://github.com/undefcc/intro)：GitHub Actions 构建 → 推阿里云 ACR → SSH 到 ECS 跑 Docker，并加入 `compose_default` 给 Nginx Proxy Manager 反代。
+和 [intro](https://github.com/undefcc/intro) 同一条链路：Actions 构建 → ACR → SSH 到 ECS，加入 `compose_default` 给 NPM 反代。推 `main` 或手动跑 workflow，可选择 `apps/` 里的应用。
 
-青测是 Vite 静态站，镜像里是 nginx，不占 intro 的 3000/3001。
-
-| 项目 | 容器名 | 宿主机端口 |
+| 项目 | 容器名 | 端口 |
 | --- | --- | --- |
-| intro | `web-intro` | 3000（+ 3001） |
+| intro（独立仓库） | `web-intro` | 3000 / 3001 |
 | 青测 | `web-qingce` | 3002 |
 
-推到 `main` 或在 Actions 里手动跑 `Build Vite and Deploy to Aliyun ECS`。
-
-### 1. Secrets（不建 Organization）
-
-个人仓库之间不能共用 Actions Secrets。这个项目在 whoami 里 **加一次** 就行，不是每月加，也不是每个环境加。
-
-whoami → Settings → Secrets and variables → Actions，按 intro 里的同名项复制：
+whoami 是 public，标准托管 runner 不扣 2000 分钟。Secrets 在本仓库加一次，后面新应用共用：
 
 - `ALIYUN_DOCKER_USERNAME`
 - `ALIYUN_DOCKER_PASSWORD`
@@ -83,26 +73,11 @@ whoami → Settings → Secrets and variables → Actions，按 intro 里的同�
 
 可选：`VITE_KEY_SECRET`、`VITE_STUDIO_PASSWORD`
 
-whoami / intro 都是 **public**，用标准托管 runner 不扣那 2000 分钟。2000 分钟只打私有仓库；免费个人号和免费 Organization 额度一样。
-
-ACR：`crpi-zpvonb2nha7j0qgy.cn-shenzhen.personal.cr.aliyuncs.com/cc4ever/web-qingce`。
-
-### 2. Nginx Proxy Manager
-
-部署成功后，在 NPM 里加一条 Proxy Host：
-
-- Forward Hostname / IP：`web-qingce`
-- Forward Port：`80`
-- 域名自己定，例如 `qingce.ccoding.cn`
-
-没配域名时，可以直接用 `http://<ECS公网IP>:3002` 验。
-
-### 3. 本机先看镜像
+NPM：Forward `web-qingce:80`。没域名用 `http://<ECS公网IP>:3002`。
 
 ```bash
 npm ci
-npm run build
-docker build -t web-qingce:local -f script/Dockerfile .
+npm run build:qingce
+docker build -t web-qingce:local -f apps/qingce/script/Dockerfile .
 docker run --rm -p 3002:80 web-qingce:local
 ```
-
