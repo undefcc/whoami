@@ -31,7 +31,7 @@ npm run gen-key -- ALL 5
 
 ## 青测
 
-性格、周末去哪、旅行目的地、职业气质、恋爱沟通。Vite + React，付费题用密钥解锁，方便在闲鱼或小红书发售。
+性格、周末去哪、旅行目的地、职业气质、恋爱沟通。Vite + React。付费测评用密钥解锁。
 
 | 测评 | 是否免费 |
 | --- | --- |
@@ -41,7 +41,7 @@ npm run gen-key -- ALL 5
 | 职业气质 | 密钥 |
 | 恋爱沟通 | 密钥 |
 
-卖密钥：打开 `/studio`，口令默认 `qingce-studio`。范围 `ALL` / `TRAVEL` / `CAREER` / `LOVE`。买家在「解锁」页粘贴，记录在对方浏览器本地。
+管理页在 `/studio`，不出现在用户导航里。口令默认 `qingce-studio`。范围 `ALL` / `TRAVEL` / `CAREER` / `LOVE`。用户在「解锁」页粘贴密钥，记录在这台浏览器里。
 
 ```bash
 npm run gen-key -- ALL 5
