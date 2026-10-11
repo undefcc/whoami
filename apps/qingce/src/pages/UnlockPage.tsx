@@ -24,8 +24,8 @@ export function UnlockPage() {
   return (
     <main className="page">
       <section className="result-hero">
-        <p className="eyebrow">密钥兑换</p>
-        <h1>把买到的钥匙贴过来。</h1>
+        <p className="eyebrow">解锁</p>
+        <h1>输入密钥。</h1>
         <p className="lede">格式类似 QZ1-ALL-K8M2P4-A91C。解锁记录只存在这台设备的浏览器里。</p>
       </section>
       <section className="card panel">

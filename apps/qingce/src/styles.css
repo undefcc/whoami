@@ -358,9 +358,27 @@ p {
   padding: 12px 0 36px;
   color: var(--ink-soft);
   font-size: 13px;
+}
+
+.admin-shell {
+  min-height: 100%;
+  background:
+    radial-gradient(800px 360px at 100% -10%, #e7e4f2 0%, transparent 50%),
+    #f4f1ea;
+}
+
+.admin-nav {
+  width: min(1080px, calc(100% - 32px));
+  margin: 0 auto;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  padding: 22px 0 8px;
+}
+
+.admin-shell .page {
+  width: min(1080px, calc(100% - 32px));
+  margin: 0 auto;
 }
 
 .lock-box {

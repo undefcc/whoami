@@ -22,7 +22,7 @@ export function StudioPage() {
 
   function login() {
     if (password !== studioPassword) {
-      setError('口令不对。默认是 qingce-studio，可在 .env 里改。')
+      setError('口令不对')
       return
     }
     setError(null)
@@ -44,11 +44,15 @@ export function StudioPage() {
 
   if (!authed) {
     return (
-      <main className="page">
+      <div className="admin-shell">
+        <header className="admin-nav">
+          <span className="brand">青测管理</span>
+        </header>
+        <main className="page">
         <section className="result-hero">
-          <p className="eyebrow">只给你用</p>
-          <h1>工作室</h1>
-          <p className="lede">在这里批量生成密钥，复制后发给闲鱼或小红书的买家。</p>
+          <p className="eyebrow">管理</p>
+          <h1>进入工作室</h1>
+          <p className="lede">这里用来生成解锁密钥，不在测评站导航里。</p>
         </section>
         <section className="card panel">
           <label className="field">
@@ -67,18 +71,24 @@ export function StudioPage() {
           </button>
           {error ? <p className="notice">{error}</p> : null}
         </section>
-      </main>
+        </main>
+      </div>
     )
   }
 
   return (
-    <main className="page">
+    <div className="admin-shell">
+      <header className="admin-nav">
+        <span className="brand">青测管理</span>
+        <button className="btn secondary" type="button" onClick={() => setAuthed(false)}>
+          退出
+        </button>
+      </header>
+      <main className="page">
       <section className="result-hero">
-        <p className="eyebrow">发售用</p>
+        <p className="eyebrow">密钥</p>
         <h1>生成密钥</h1>
-        <p className="lede">
-          盐值来自 VITE_KEY_SECRET。换盐之后旧钥匙全部作废。密钥校验在前端，能挡住随手乱填，挡不住肯拆包的人。
-        </p>
+        <p className="lede">换掉 VITE_KEY_SECRET 之后，以前发出的密钥都会失效。</p>
       </section>
       <section className="card panel">
         <label className="field">
@@ -125,6 +135,7 @@ export function StudioPage() {
           </div>
         )}
       </section>
-    </main>
+      </main>
+    </div>
   )
 }
