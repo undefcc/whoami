@@ -1,0 +1,4 @@
+*
+!apps/qingce/dist
+!apps/qingce/dist/**
+!apps/qingce/script/nginx.conf

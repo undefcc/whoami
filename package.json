@@ -1,0 +1,17 @@
+{
+  "name": "whoami",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w qingce",
+    "dev:qingce": "npm run dev -w qingce",
+    "build": "npm run build --workspaces --if-present",
+    "build:qingce": "npm run build -w qingce",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "preview": "npm run preview -w qingce",
+    "gen-key": "npm run gen-key -w qingce --"
+  }
+}
