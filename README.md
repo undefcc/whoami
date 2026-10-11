@@ -68,15 +68,11 @@ cp .env.example .env
 
 推到 `main` 或在 Actions 里手动跑 `Build Vite and Deploy to Aliyun ECS`。
 
-### 1. Secrets 只用配一次（Organization）
+### 1. Secrets（不建 Organization）
 
-GitHub **个人仓库之间不能共用** Actions Secrets，intro 的钥匙 whoami 读不到，这不是漏配。要共用，需要一个 Organization：
+个人仓库之间不能共用 Actions Secrets。这个项目在 whoami 里 **加一次** 就行，不是每月加，也不是每个环境加。
 
-1. GitHub 新建 Organization（例如 `cc4ever`）
-2. 把 `intro`、`whoami`、以后的项目 Transfer 进去
-3. Organization → Settings → Secrets and variables → Actions → New organization secret  
-   Repository access 选 **All repositories**
-4. 配这些名字（和 intro 里的一样即可）：
+whoami → Settings → Secrets and variables → Actions，按 intro 里的同名项复制：
 
 - `ALIYUN_DOCKER_USERNAME`
 - `ALIYUN_DOCKER_PASSWORD`
@@ -87,11 +83,9 @@ GitHub **个人仓库之间不能共用** Actions Secrets，intro 的钥匙 whoa
 
 可选：`VITE_KEY_SECRET`、`VITE_STUDIO_PASSWORD`
 
-之后新仓库不用再加 Secrets。本仓库的 workflow 已不再依赖 intro 那个 `cc` Environment。
+whoami / intro 都是 **public**，用标准托管 runner 不扣那 2000 分钟。2000 分钟只打私有仓库；免费个人号和免费 Organization 额度一样。
 
-还没建 Organization 时，只能在本仓库 Settings → Secrets 里先加一份，才能部署这一次。
-
-ACR 仍用：`crpi-zpvonb2nha7j0qgy.cn-shenzhen.personal.cr.aliyuncs.com/cc4ever/web-qingce`。
+ACR：`crpi-zpvonb2nha7j0qgy.cn-shenzhen.personal.cr.aliyuncs.com/cc4ever/web-qingce`。
 
 ### 2. Nginx Proxy Manager
 
