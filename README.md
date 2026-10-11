@@ -60,7 +60,7 @@ cp apps/qingce/.env.example apps/qingce/.env
 | 项目 | 容器名 | 端口 |
 | --- | --- | --- |
 | intro（独立仓库） | `web-intro` | 3000 / 3001 |
-| 青测 | `web-qingce` | 3002 |
+| 青测 | `web-qingce` | 3200 |
 
 whoami 是 public，标准托管 runner 不扣 2000 分钟。Secrets 放在本仓库的 Environment `cc` 里（和 intro 一样），workflow 里用 `environment: cc` 读取，后面新应用共用：
 
@@ -72,11 +72,11 @@ whoami 是 public，标准托管 runner 不扣 2000 分钟。Secrets 放在本�
 
 可选：`VITE_KEY_SECRET`、`VITE_STUDIO_PASSWORD`
 
-NPM：Forward `web-qingce:80`。没域名用 `http://<ECS公网IP>:3002`。
+NPM：Forward `web-qingce:80`。没域名用 `http://<ECS公网IP>:3200`。
 
 ```bash
 npm ci
 npm run build:qingce
 docker build -t web-qingce:local -f apps/qingce/script/Dockerfile .
-docker run --rm -p 3002:80 web-qingce:local
+docker run --rm -p 3200:80 web-qingce:local
 ```

@@ -32,7 +32,7 @@ jobs:
             qingce)
               echo "app=qingce" >> "$GITHUB_OUTPUT"
               echo "image_name=web-qingce" >> "$GITHUB_OUTPUT"
-              echo "host_port=3002" >> "$GITHUB_OUTPUT"
+              echo "host_port=3200" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "未知应用: $app"
