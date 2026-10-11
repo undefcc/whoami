@@ -272,10 +272,28 @@ p {
   gap: 12px;
 }
 
+.result-sheet {
+  display: grid;
+  gap: 18px;
+  max-width: 640px;
+  padding: 28px 28px 24px;
+  border-radius: 28px;
+  background:
+    radial-gradient(420px 180px at 0% 0%, #e3f0e6 0%, transparent 70%),
+    #f3efe6;
+}
+
+.result-mark {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-soft);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
 .result-hero {
   display: grid;
   gap: 12px;
-  padding-top: 8px;
 }
 
 .result-hero h1 {
