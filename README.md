@@ -69,7 +69,6 @@ whoami 是 public，标准托管 runner 不扣 2000 分钟。Secrets 放在本�
 - `ECS_HOST`
 - `ECS_USERNAME`
 - `ECS_SSH_PRIVATE_KEY`
-- `ECS_SSH_FINGERPRINT`
 
 可选：`VITE_KEY_SECRET`、`VITE_STUDIO_PASSWORD`
 
