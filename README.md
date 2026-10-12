@@ -72,7 +72,7 @@ whoami 是 public，标准托管 runner 不扣 2000 分钟。Secrets 放在本�
 
 可选：`VITE_KEY_SECRET`、`VITE_STUDIO_PASSWORD`
 
-NPM：Forward `web-qingce:80`。没域名用 `http://<ECS公网IP>:3200`。
+公网域名 `https://q.caelus.cc`，NPM 把该域名转到 `web-qingce:80`。没域名时仍可用 `http://<ECS公网IP>:3200`。
 
 ```bash
 npm ci
