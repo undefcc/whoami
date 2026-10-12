@@ -1,0 +1,196 @@
+name: Reboot ECS and collect previous boot
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/reboot-ecs.yml
+
+jobs:
+  reboot:
+    runs-on: ubuntu-latest
+    environment: cc
+    timeout-minutes: 20
+    outputs:
+      rebooted: ${{ steps.reboot.outputs.rebooted }}
+    steps:
+      - name: Reboot the ECS at 47.115.57.172
+        id: reboot
+        env:
+          ALIYUN_ACCESS_KEY_ID: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
+          ALIYUN_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
+          ALIBABA_CLOUD_ACCESS_KEY_ID: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_ID }}
+          ALIBABA_CLOUD_ACCESS_KEY_SECRET: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_SECRET }}
+          ALIYUN_DOCKER_USERNAME: ${{ secrets.ALIYUN_DOCKER_USERNAME }}
+          ALIYUN_DOCKER_PASSWORD: ${{ secrets.ALIYUN_DOCKER_PASSWORD }}
+          TARGET_IP: 47.115.57.172
+        run: |
+          set -eu
+          curl -fsSL --retry 3 --max-time 40 -o /tmp/aliyun.tgz https://aliyuncli.alicdn.com/aliyun-cli-linux-latest-amd64.tgz
+          tar -xzf /tmp/aliyun.tgz -C /tmp
+          bin="$(find /tmp -maxdepth 3 -type f -name aliyun | head -n 1)"
+          sudo mv "$bin" /usr/local/bin/aliyun
+          sudo chmod +x /usr/local/bin/aliyun
+
+          python3 - << 'PY'
+          import json, os, re, subprocess, sys, time
+
+          target = os.environ["TARGET_IP"]
+          regions = [
+              "cn-shenzhen", "cn-guangzhou", "cn-heyuan", "cn-hangzhou",
+              "cn-shanghai", "cn-beijing", "cn-hongkong", "cn-chengdu",
+              "cn-qingdao", "cn-zhangjiakou", "cn-huhehaote", "cn-wulanchabu",
+              "cn-nanjing",
+          ]
+          pairs = [
+              ("ALIYUN_ACCESS_KEY_ID", "ALIYUN_ACCESS_KEY_SECRET"),
+              ("ALIBABA_CLOUD_ACCESS_KEY_ID", "ALIBABA_CLOUD_ACCESS_KEY_SECRET"),
+              ("ALIYUN_DOCKER_USERNAME", "ALIYUN_DOCKER_PASSWORD"),
+          ]
+
+          def looks_like_ak(value):
+              return value.startswith("LTAI") or value.startswith("STS.")
+
+          def run_aliyun(args):
+              proc = subprocess.run(["aliyun", *args], text=True, capture_output=True)
+              return proc.returncode, proc.stdout, proc.stderr
+
+          def error_code(text):
+              text = re.sub(r"LTAI[A-Za-z0-9]+", "LTAI***", text)
+              for line in text.splitlines():
+                  if "ErrorCode" in line or '"Code"' in line or line.startswith("ERROR"):
+                      return line.strip()[:240]
+              return text.strip().splitlines()[-1][:240] if text.strip() else "unknown"
+
+          configured = False
+          for id_name, secret_name in pairs:
+              key_id = os.environ.get(id_name, "")
+              secret = os.environ.get(secret_name, "")
+              print(f"{id_name}: set={bool(key_id)} len={len(key_id)} ak_prefix={looks_like_ak(key_id)}")
+              if not key_id or not secret:
+                  continue
+              code, out, err = run_aliyun([
+                  "configure", "set",
+                  "--profile", "reboot",
+                  "--mode", "AK",
+                  "--access-key-id", key_id,
+                  "--access-key-secret", secret,
+                  "--region", "cn-shenzhen",
+              ])
+              if code != 0:
+                  print(f"{id_name}: configure failed: {error_code(err or out)}")
+                  continue
+              code, out, err = run_aliyun([
+                  "ecs", "DescribeInstances",
+                  "--profile", "reboot",
+                  "--RegionId", "cn-shenzhen",
+                  "--PageSize", "1",
+              ])
+              blob = out + "\n" + err
+              if code != 0 or "InvalidAccessKeyId" in blob or "SignatureDoesNotMatch" in blob or "Forbidden" in blob:
+                  print(f"{id_name}: api rejected: {error_code(err or out)}")
+                  continue
+              print(f"{id_name}: api accepted")
+              configured = True
+              break
+
+          if not configured:
+              sys.exit("no usable Aliyun RAM access key")
+
+          found = None
+          found_region = None
+          for region in regions:
+              code, out, err = run_aliyun([
+                  "ecs", "DescribeInstances",
+                  "--profile", "reboot",
+                  "--RegionId", region,
+                  "--PageSize", "100",
+              ])
+              if code != 0:
+                  print(f"{region}: {error_code(err or out)}")
+                  continue
+              try:
+                  data = json.loads(out)
+              except json.JSONDecodeError:
+                  print(f"{region}: non-json response")
+                  continue
+              instances = data.get("Instances", {}).get("Instance", [])
+              print(f"{region}: {len(instances)} instances")
+              for item in instances:
+                  if target in json.dumps(item, ensure_ascii=False):
+                      found = item
+                      found_region = region
+                      break
+              if found:
+                  break
+
+          if not found:
+              sys.exit(f"no ECS with public address {target}")
+
+          instance_id = found["InstanceId"]
+          status = found.get("Status", "")
+          name = found.get("InstanceName", "")
+          print(f"match {found_region} {instance_id} name={name} status={status}")
+          open(os.environ["GITHUB_OUTPUT"], "a").write(f"instance_id={instance_id}\nregion={found_region}\n")
+
+          if status == "Stopped":
+              action = ["ecs", "StartInstance", "--InstanceId", instance_id]
+          else:
+              action = ["ecs", "RebootInstance", "--InstanceId", instance_id, "--ForceStop", "true"]
+          code, out, err = run_aliyun([*action, "--profile", "reboot", "--region", found_region])
+          if code != 0:
+              sys.exit(f"reboot failed: {error_code(err or out)}")
+          print("reboot requested")
+          open(os.environ["GITHUB_OUTPUT"], "a").write("rebooted=yes\n")
+
+          for _ in range(40):
+              time.sleep(15)
+              code, out, err = run_aliyun([
+                  "ecs", "DescribeInstanceStatus",
+                  "--profile", "reboot",
+                  "--RegionId", found_region,
+                  "--InstanceId.1", instance_id,
+              ])
+              if code != 0:
+                  print(error_code(err or out))
+                  continue
+              try:
+                  data = json.loads(out)
+                  current = data["InstanceStatuses"]["InstanceStatus"][0]["Status"]
+              except (json.JSONDecodeError, KeyError, IndexError):
+                  print("status parse failed")
+                  continue
+              print(f"status {current}")
+              if current == "Running":
+                  break
+          else:
+              sys.exit("instance did not return to Running")
+          PY
+
+      - name: Read previous boot after SSH returns
+        if: steps.reboot.outputs.rebooted == 'yes'
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.ECS_HOST }}
+          username: ${{ secrets.ECS_USERNAME }}
+          key: ${{ secrets.ECS_SSH_PRIVATE_KEY }}
+          timeout: 60s
+          command_timeout: 8m
+          version: "1.8.4"
+          script: |
+            set -eu
+            echo "=== uptime ==="
+            uptime
+            echo "=== memory ==="
+            free -h
+            echo "=== disk ==="
+            df -hT
+            echo "=== previous kernel messages ==="
+            journalctl -b -1 -k --no-pager -n 200 | grep -Ei 'out of memory|oom|killed process|I/O error|ext4|nvme|reset|blocked for more' || true
+            echo "=== previous sshd ==="
+            journalctl -b -1 -u ssh --no-pager -n 40 || true
+            echo "=== dmesg errors ==="
+            dmesg -T -l err,warn | tail -n 80 || true
+            echo "=== docker ==="
+            docker ps --format '{{.Names}} {{.Status}}' || true
